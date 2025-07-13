@@ -1,0 +1,26 @@
+# Cloudflare Pages Configuration
+
+# Build settings
+compatibility_date = "2024-01-01"
+
+[build]
+  command = "npm run build && npm run pages:build"
+  publish = "./out"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Functions
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
