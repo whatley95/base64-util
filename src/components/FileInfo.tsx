@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { FileData } from '@/app/page'
 import { calculateSHA256FromBase64, formatFileSize, getEnhancedMetadata } from '@/lib/metadata'
 import { generateSmartFilename, getExtensionFromMimeType } from '@/lib/utils'
@@ -206,11 +207,15 @@ export default function FileInfo({ file, onFileNameChange }: FileInfoProps) {
             <div className="space-y-3">
               {isImage ? (
                 <div className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-                  <img
-                    src={file.base64}
-                    alt={file.name}
-                    className="w-full h-32 object-cover"
-                  />
+                  <div className="relative w-full h-32">
+                    <Image
+                      src={file.base64}
+                      alt={file.name}
+                      fill
+                      style={{ objectFit: 'cover' }}
+                      unoptimized // Since we're using data URLs
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 h-32 flex items-center justify-center bg-gray-50 dark:bg-gray-700">
@@ -273,7 +278,7 @@ export default function FileInfo({ file, onFileNameChange }: FileInfoProps) {
           />
           
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            💡 This includes the data URL prefix. Use "Copy Raw" for base64 only.
+            💡 This includes the data URL prefix. Use &ldquo;Copy Raw&rdquo; for base64 only.
           </p>
         </div>
       )}

@@ -8,9 +8,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:build": "next build && npx @cloudflare/next-on-pages@latest",
     "pages:dev": "npx @cloudflare/next-on-pages --watch",
-    "pages:deploy": "wrangler pages deploy ./out --project-name=base64-util"
+    "pages:deploy": "wrangler pages deploy ./out --project-name=base64-util",
+    "pages:build:win": "build-pages.bat",
+    "manual-build": "manual-build.bat",
+    "export": "next export"
   },
   "keywords": [],
   "author": "",

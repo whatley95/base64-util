@@ -101,6 +101,12 @@ Base64 Util uses browser's localStorage to save your conversion history, providi
    npm run pages:build
    ```
 
+3. **Manual build for Windows users**
+   ```bash
+   npm run manual-build
+   ```
+   This command builds the application without using Cloudflare's build tools, which may have compatibility issues on Windows systems. The output will be in the `out` directory, ready for manual upload.
+
 ### Deployment to Cloudflare Pages
 
 1. **Using Wrangler CLI**
@@ -113,8 +119,54 @@ Base64 Util uses browser's localStorage to save your conversion history, providi
    - Set build command: `npm run build && npm run pages:build`
    - Set build output directory: `out`
    - Add environment variable: `NODE_VERSION: 20`
+   
+3. **Manual Deployment (recommended for Windows users)**
+   - Run the manual build: `npm run manual-build`
+   - If you encounter ESLint errors during build:
+     ```bash
+     # If you see ESLint errors, you can fix them or temporarily disable ESLint
+     # To temporarily disable ESLint for build, modify next.config.js to add:
+     # eslint: { ignoreDuringBuilds: true },
+     ```
+   - Check that the build was successful by verifying the `out` directory contains `index.html`
+   - Log in to [Cloudflare Dashboard](https://dash.cloudflare.com/)
+   - Navigate to Pages > Your project (or create a new Direct Upload project)
+     - If creating new: Click "Create a project" → Select "Direct Upload"
+     - If existing: Select your project → "Deployments" tab → "Upload assets"
+   - Click "Deploy" or "Upload Files"
+   - Drag and drop the entire contents of the `out` directory (not the out folder itself)
+   - Wait for the deployment to complete (~1-2 minutes)
+   - Once deployed, you'll receive a URL like `your-project-name.pages.dev`
 
-## 📖 Usage
+## � Troubleshooting Deployment
+
+### Common Build Issues
+
+1. **ESLint Errors**
+   - You may encounter ESLint errors during build like unescaped quotes or image optimization warnings
+   - Option 1: Fix the errors in your code (recommended)
+   - Option 2: Temporarily disable ESLint for builds by adding to next.config.js:
+     ```js
+     eslint: { 
+       ignoreDuringBuilds: true 
+     },
+     ```
+
+2. **Windows-Specific Issues**
+   - If the `manual-build.bat` script fails, try running the commands manually:
+     ```bash
+     npm run build
+     # Check the out directory exists
+     dir out
+     ```
+   - If you get "Access is denied" errors, close any processes like VS Code or terminals that might be locking files
+
+3. **Cloudflare Upload Problems**
+   - Ensure you're uploading the contents of the `out` directory, not the directory itself
+   - If files are missing after deployment, check that all necessary files were included
+   - For large sites, consider compressing files or uploading in smaller batches
+
+## �📖 Usage
 
 ### File to Base64
 
