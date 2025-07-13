@@ -41,7 +41,7 @@ export default function Home() {
     decodedBytes: null,
     decodedBase64Data: null
   })
-
+  
   const addToHistory = (item: Omit<HistoryItem, 'id' | 'timestamp'>) => {
     const newItem: HistoryItem = {
       ...item,
@@ -49,6 +49,14 @@ export default function Home() {
       timestamp: new Date(),
     }
     setHistory(prev => [newItem, ...prev.slice(0, 9)]) // Keep last 10 items
+  }
+  
+  const removeFromHistory = (id: string) => {
+    setHistory(prev => prev.filter(item => item.id !== id))
+  }
+  
+  const clearAllHistory = () => {
+    setHistory([])
   }
 
   const handleFileEncoded = (fileData: FileData) => {
@@ -210,7 +218,12 @@ export default function Home() {
                 ✕
               </button>
             </div>
-            <FileInfo file={currentFile} />
+            <FileInfo 
+              file={currentFile} 
+              onFileNameChange={(newName) => {
+                setCurrentFile(prev => prev ? { ...prev, name: newName } : null);
+              }} 
+            />
           </div>
         )}
 
@@ -219,7 +232,11 @@ export default function Home() {
           <h2 className="text-2xl font-semibold mb-4 text-gray-800 dark:text-white">
             📜 Recent Conversions
           </h2>
-          <ConversionHistory history={history} />
+          <ConversionHistory 
+            history={history} 
+            onRemoveItem={removeFromHistory} 
+            onClearAll={clearAllHistory}
+          />
         </div>
       </div>
 

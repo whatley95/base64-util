@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { FileData } from '@/app/page'
+import { useBase64Worker } from '@/lib/useBase64Worker'
 
 interface FileUploadZoneProps {
   onFileEncoded: (fileData: FileData) => void
@@ -9,25 +10,18 @@ interface FileUploadZoneProps {
 
 export default function FileUploadZone({ onFileEncoded }: FileUploadZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
+  const { encodeToBase64, isProcessing, progress, error, cancelOperation } = useBase64Worker()
 
   const processFile = useCallback(async (file: File) => {
-    setIsProcessing(true)
-    
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          if (typeof reader.result === 'string') {
-            resolve(reader.result)
-          } else {
-            reject(new Error('Failed to read file'))
-          }
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
-
+      // First, convert the file to an ArrayBuffer
+      const arrayBuffer = await file.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      
+      // Use the web worker to encode to base64
+      const base64String = await encodeToBase64(bytes)
+      const base64 = `data:${file.type || 'application/octet-stream'};base64,${base64String}`
+      
       const fileData: FileData = {
         name: file.name,
         type: file.type || 'application/octet-stream',
@@ -39,11 +33,9 @@ export default function FileUploadZone({ onFileEncoded }: FileUploadZoneProps) {
       onFileEncoded(fileData)
     } catch (error) {
       console.error('Error processing file:', error)
-      alert('Error processing file. Please try again.')
-    } finally {
-      setIsProcessing(false)
+      // The worker error handling takes care of the UI feedback
     }
-  }, [onFileEncoded])
+  }, [onFileEncoded, encodeToBase64])
 
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -107,7 +99,12 @@ export default function FileUploadZone({ onFileEncoded }: FileUploadZoneProps) {
           
           <div>
             <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-              {isProcessing ? 'Processing file...' : 'Drop a file here or click to browse'}
+              {isProcessing 
+                ? progress > 0 && progress < 1 
+                  ? `Processing file... ${Math.round(progress * 100)}%` 
+                  : 'Processing file...'
+                : 'Drop a file here or click to browse'
+              }
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Any file type is supported
@@ -117,8 +114,18 @@ export default function FileUploadZone({ onFileEncoded }: FileUploadZoneProps) {
           {!isProcessing && (
             <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 mx-4">
               <p className="text-xs text-blue-600 dark:text-blue-400">
-                💡 Files are processed locally in your browser. Nothing is uploaded to any server.
+                💡 Files are processed locally in your browser using Web Workers for better performance.
               </p>
+            </div>
+          )}
+
+          {/* Progress bar for large files */}
+          {isProcessing && progress > 0 && progress < 1 && (
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-4 mx-4">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
             </div>
           )}
         </div>
@@ -130,9 +137,24 @@ export default function FileUploadZone({ onFileEncoded }: FileUploadZoneProps) {
         )}
       </div>
 
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <p className="text-sm text-red-600 dark:text-red-400">❌ {error}</p>
+        </div>
+      )}
+
+      {isProcessing && (
+        <button
+          onClick={cancelOperation}
+          className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+        >
+          Cancel Operation
+        </button>
+      )}
+
       <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
         <p>📁 Supported: Images, documents, videos, audio, archives, and more</p>
-        <p>💾 Max recommended size: 100MB for better performance</p>
+        <p>💾 Files of any size are supported (web worker prevents UI freezing)</p>
       </div>
     </div>
   )

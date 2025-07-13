@@ -2,7 +2,8 @@
 
 import { useState, useCallback, Dispatch, SetStateAction } from 'react'
 import { FileData, FileTypeState } from '@/app/page'
-import { detectFileTypeFromBytes, getExtensionFromMimeType } from '@/lib/utils'
+import { getExtensionFromMimeType } from '@/lib/utils'
+import { useBase64Worker } from '@/lib/useBase64Worker'
 
 interface Base64InputProps {
   onFileDecoded: (fileData: FileData) => void;
@@ -16,8 +17,13 @@ export default function Base64Input({
   setFileTypeState 
 }: Base64InputProps) {
   const [base64Input, setBase64Input] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { 
+    decodeFromBase64, 
+    isProcessing, 
+    progress, 
+    error, 
+    cancelOperation 
+  } = useBase64Worker()
 
   // Common file types for users to select
   const commonFileTypes = [
@@ -55,16 +61,12 @@ export default function Base64Input({
   
   const decodeBase64 = useCallback(async () => {
     if (!base64Input.trim()) {
-      setError('Please enter a base64 string')
       return
     }
 
-    setIsProcessing(true)
-    setError(null)
-
     try {
       let base64Data = base64Input.trim()
-      let mimeType = 'application/octet-stream'
+      let mimeType: string | undefined = undefined
 
       // Check if it's a data URL
       if (base64Data.startsWith('data:')) {
@@ -77,41 +79,24 @@ export default function Base64Input({
         }
       }
 
-      // Validate base64
-      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data)) {
-        throw new Error('Invalid base64 characters detected')
-      }
-
-      // Try to decode to check if it's valid
-      const binaryString = atob(base64Data)
-      const bytes = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i)
-      }
+      // Use web worker to decode
+      const result = await decodeFromBase64(base64Data, mimeType)
       
-      // For raw base64 strings, try to detect file type
-      if (!base64Input.startsWith('data:')) {
-        // Detect file type from bytes
-        mimeType = detectFileTypeFromBytes(bytes)
-      }
-      
-      // Update the shared file type state
+      // Update the shared file type state with the detected type
       setFileTypeState({
         showFileTypeSelector: true,
-        detectedFileType: mimeType,
-        decodedBytes: bytes,
+        detectedFileType: result.detectedType,
+        decodedBytes: result.bytes,
         decodedBase64Data: base64Data
       })
       
       // Auto-decode with the detected file type
-      processDecodedBytes(bytes, base64Data, mimeType)
-    } catch (error) {
-      console.error('Error decoding base64:', error)
-      setError(error instanceof Error ? error.message : 'Invalid base64 string')
-    } finally {
-      setIsProcessing(false)
+      processDecodedBytes(result.bytes, base64Data, result.detectedType)
+    } catch (err) {
+      console.error('Error decoding base64:', err)
+      // Web worker error is already handled in the useBase64Worker hook
     }
-  }, [base64Input, processDecodedBytes, setFileTypeState])
+  }, [base64Input, decodeFromBase64, processDecodedBytes, setFileTypeState])
 
   const handlePaste = useCallback(() => {
     if (navigator.clipboard) {
@@ -125,7 +110,7 @@ export default function Base64Input({
 
   const clearInput = () => {
     setBase64Input('')
-    setError(null)
+    cancelOperation() // Cancel any ongoing operations
     
     setFileTypeState(prev => ({
       ...prev,
@@ -144,6 +129,7 @@ export default function Base64Input({
             <button
               onClick={handlePaste}
               className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              disabled={isProcessing}
             >
               📋 Paste
             </button>
@@ -171,6 +157,16 @@ export default function Base64Input({
             <p className="text-sm text-red-600 dark:text-red-400">❌ {error}</p>
           </div>
         )}
+        
+        {/* Progress bar for large files */}
+        {isProcessing && progress > 0 && progress < 1 && (
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-2">
+            <div 
+              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+        )}
       </div>
       
       {/* Decode button - only show when file type selector is not visible */}
@@ -183,7 +179,9 @@ export default function Base64Input({
           {isProcessing ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              Processing...
+              {progress > 0 && progress < 1 
+                ? `Processing... ${Math.round(progress * 100)}%`
+                : "Processing..."}
             </>
           ) : (
             <>
@@ -192,10 +190,19 @@ export default function Base64Input({
           )}
         </button>
       )}
+      
+      {isProcessing && (
+        <button
+          onClick={cancelOperation}
+          className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+        >
+          Cancel Operation
+        </button>
+      )}
 
       <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-2 mt-2">
         <p className="text-xs text-yellow-600 dark:text-yellow-400">
-          💡 Accepts raw base64 strings and data URLs. Auto-detects file types and decodes immediately.
+          💡 Accepts raw base64 strings and data URLs. Uses web workers to process large files without blocking the UI.
         </p>
       </div>
     </div>

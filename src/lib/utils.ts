@@ -6,6 +6,111 @@ export const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+/**
+ * Extracts filename from a Data URL if available
+ * Some data URLs might contain filename information in a non-standard way
+ * @param dataUrl The data URL to extract filename from
+ * @returns The extracted filename or null if not found
+ */
+export const extractFilenameFromDataURL = (dataUrl: string): string | null => {
+  try {
+    // Check if it's a data URL
+    if (!dataUrl.startsWith('data:')) {
+      return null;
+    }
+    
+    // Some applications add filename in a custom format, check for common patterns
+    // Format: data:...;filename=name.ext;base64,...
+    if (dataUrl.includes(';filename=')) {
+      const filenameMatch = dataUrl.match(/;filename=([^;]+);/);
+      if (filenameMatch && filenameMatch[1]) {
+        return decodeURIComponent(filenameMatch[1].trim());
+      }
+    }
+    
+    // Format: data:...;name=name.ext;base64,...
+    if (dataUrl.includes(';name=')) {
+      const nameMatch = dataUrl.match(/;name=([^;]+);/);
+      if (nameMatch && nameMatch[1]) {
+        return decodeURIComponent(nameMatch[1].trim());
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting filename from data URL:', error);
+    return null;
+  }
+};
+
+/**
+ * Extracts a suggested filename from Content-Disposition header
+ * @param contentDisposition Content-Disposition header value
+ * @returns The extracted filename or null if not found
+ */
+export const extractFilenameFromContentDisposition = (contentDisposition: string): string | null => {
+  try {
+    if (!contentDisposition) {
+      return null;
+    }
+    
+    // Format: attachment; filename="name.ext"
+    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/i);
+    if (filenameMatch && (filenameMatch[2] || filenameMatch[3])) {
+      const filename = filenameMatch[2] || filenameMatch[3];
+      return decodeURIComponent(filename.trim());
+    }
+    
+    // Format: attachment; filename*=UTF-8''name.ext
+    const filenameExtMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (filenameExtMatch && filenameExtMatch[1]) {
+      return decodeURIComponent(filenameExtMatch[1].trim());
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting filename from Content-Disposition:', error);
+    return null;
+  }
+};
+
+/**
+ * Generates a smart filename for downloaded content
+ * @param mimeType The MIME type of the content
+ * @param base64String The base64 string (may include data URL)
+ * @param defaultName Optional default name to use if no name is detected
+ * @returns A suitable filename for the content
+ */
+export const generateSmartFilename = (
+  mimeType: string, 
+  base64String: string | null = null, 
+  defaultName: string = 'file'
+): string => {
+  // Try to extract filename from data URL if provided
+  if (base64String) {
+    const extractedName = extractFilenameFromDataURL(base64String);
+    if (extractedName) {
+      return extractedName;
+    }
+  }
+  
+  // Generate a filename with appropriate extension based on MIME type
+  const extension = getExtensionFromMimeType(mimeType);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  
+  // Use MIME subtype as part of the filename for better identification
+  let mimeSubtype = '';
+  if (mimeType.includes('/')) {
+    mimeSubtype = mimeType.split('/')[1].split(';')[0].split('+')[0];
+    // Clean up the subtype to use as part of filename
+    mimeSubtype = mimeSubtype.replace(/[^a-z0-9]/gi, '-');
+  }
+  
+  return mimeSubtype 
+    ? `${defaultName}-${mimeSubtype}-${timestamp}${extension}` 
+    : `${defaultName}-${timestamp}${extension}`;
+}
+
 export const getFileExtension = (filename: string): string => {
   return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2)
 }

@@ -17,14 +17,17 @@ Base64 Util provides a clean, browser-based interface for encoding files to base
 
 - **🔄 Bidirectional Conversion**: Convert files to base64 and decode base64 strings back to downloadable files
 - **🧠 Smart File Type Detection**: Automatically detects file types from base64 data using signature analysis
-- **🖱️ Drag & Drop Interface**: Easy file upload with drag and drop support
+- **�‍♂️ Web Worker Processing**: Process large files efficiently without UI freezing using background threads
+- **📊 Progress Tracking**: Real-time progress indicators for large file operations
+- **�🖱️ Drag & Drop Interface**: Easy file upload with drag and drop support
 - **📋 Clipboard Integration**: One-click copy of encoded data and paste functionality for decoding
 - **🖼️ File Preview**: Preview supported file types directly in the browser
-- **📜 Conversion History**: Track your recent conversions with metadata
+- **📜 Conversion History**: Track your recent conversions with metadata and persistence between sessions
+- **📝 Advanced File Metadata**: View detailed file information including SHA-256 hash and MIME detection
 - **🔒 Privacy First**: All processing happens locally in your browser - no server uploads
 - **📱 Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **🌙 Dark Mode Support**: Automatic dark/light mode based on system preferences
-- **⚡ Fast Performance**: Optimized for speed and efficiency
+- **⚡ Fast Performance**: Optimized for speed and efficiency with non-blocking UI
 - **☁️ Edge Deployment**: Deployed on Cloudflare's global edge network
 
 ## 🚀 Supported File Types
@@ -38,7 +41,17 @@ Base64 Util can handle any file type for encoding, and features intelligent file
 - **Media**: MP3, WAV, OGG, MP4, AVI, MOV, WebM
 - **And More**: Support for any file format with manual type selection
 
-## 🛠️ Tech Stack
+## � Data Persistence
+
+Base64 Util uses browser's localStorage to save your conversion history, providing these benefits:
+
+- **🔄 Session Persistence**: Your conversion history is preserved between page refreshes and browser sessions
+- **🗑️ History Management**: Remove individual entries or clear all history as needed
+- **🔒 Local Privacy**: All history data is stored only on your device, never sent to any server
+- **📱 Cross-Tab Support**: History is synchronized across multiple tabs of the application
+- **🚫 No Account Needed**: Use the tool without any sign-up or registration
+
+## �🛠️ Tech Stack
 
 - **Framework**: [Next.js 15](https://nextjs.org/) with App Router
 - **Language**: [TypeScript 5.8](https://www.typescriptlang.org/)

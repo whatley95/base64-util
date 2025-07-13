@@ -4,9 +4,11 @@ import { HistoryItem } from '@/app/page'
 
 interface ConversionHistoryProps {
   history: HistoryItem[]
+  onRemoveItem?: (id: string) => void
+  onClearAll?: () => void
 }
 
-export default function ConversionHistory({ history }: ConversionHistoryProps) {
+export default function ConversionHistory({ history, onRemoveItem, onClearAll }: ConversionHistoryProps) {
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B'
     const k = 1024
@@ -72,42 +74,65 @@ export default function ConversionHistory({ history }: ConversionHistoryProps) {
   }
 
   return (
-    <div className="space-y-3 max-h-96 overflow-y-auto">
-      {history.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-        >
-          {/* Operation Badge */}
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${getOperationColor(item.operation)}`}>
-            <span className="text-sm">
-              {getOperationIcon(item.operation)}
-            </span>
-          </div>
-
-          {/* File Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg">{getFileIcon(item.fileType)}</span>
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                {item.fileName}
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-              <span className="capitalize">{item.operation}d</span>
-              <span>{formatFileSize(item.fileSize)}</span>
-              <span>{formatTimeAgo(item.timestamp)}</span>
-            </div>
-          </div>
-
-          {/* File Type Badge */}
-          <div className="hidden sm:block">
-            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded">
-              {item.fileType.split('/')[1] || 'unknown'}
-            </span>
-          </div>
+    <div className="space-y-4">
+      {history.length > 1 && onClearAll && (
+        <div className="flex justify-end">
+          <button
+            onClick={onClearAll}
+            className="text-xs px-3 py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300 rounded transition-colors"
+          >
+            Clear All History
+          </button>
         </div>
-      ))}
+      )}
+      
+      <div className="space-y-3 max-h-96 overflow-y-auto">
+        {history.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            {/* Operation Badge */}
+            <div className={`flex items-center justify-center w-8 h-8 rounded-full ${getOperationColor(item.operation)}`}>
+              <span className="text-sm">
+                {getOperationIcon(item.operation)}
+              </span>
+            </div>
+
+            {/* File Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{getFileIcon(item.fileType)}</span>
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {item.fileName}
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                <span className="capitalize">{item.operation}d</span>
+                <span>{formatFileSize(item.fileSize)}</span>
+                <span>{formatTimeAgo(item.timestamp)}</span>
+              </div>
+            </div>
+
+            {/* File Type Badge */}
+            <div className="hidden sm:block mr-2">
+              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded">
+                {item.fileType.split('/')[1] || 'unknown'}
+              </span>
+            </div>
+            
+            {/* Delete Button */}
+            {onRemoveItem && (
+              <button
+                onClick={() => onRemoveItem(item.id)}
+                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                title="Remove from history"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
 
       {history.length >= 10 && (
         <div className="text-center pt-2">
@@ -116,6 +141,7 @@ export default function ConversionHistory({ history }: ConversionHistoryProps) {
           </p>
         </div>
       )}
+      </div>
     </div>
   )
 }
